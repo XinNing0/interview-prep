@@ -1,187 +1,171 @@
-# 🧭 二分法（Binary Search)
+# 二分查找 (Binary Search) 刷题笔记
 
-> 🚀 **核心思想：**
-> 在一个有序区间内，每次取中点，判断目标在左半还是右半，从而每次将搜索范围缩小一半。  
-> 这种“折半”思想让查找效率从 **O(n)** 提升到 **O(log n)**。
-
----
-
-## 💡 为什么使用二分法？
-
-- 暴力解：逐个遍历 → **O(n)**  
-- 二分法：每轮排除一半元素 → **O(log n)**  
-- 能在**有序数组或区间问题**中大幅提高效率。
+> 在"每步能判断答案在哪一半"的问题上,一次砍掉一半。O(log n)。
+> **本质不是"数组有序",而是"每步能二选一"**——153(半有序)、875(猜答案)都能二分。
 
 ---
 
-## 🎯 适用场景
+## 一、和对撞双指针的关系(我的理解入口)
 
-- 区间有序（升序或降序）
-- 查找：
-  - 精确目标值（exact match）
-  - 最左边界 / 最右边界
-  - 第一个 ≥ target 或 最后一个 ≤ target
+二分 = 对撞双指针的近亲:**都是left/right夹一个范围,"小了左边往右,大了右边往左"**。
 
----
+| | 对撞双指针(167) | 二分(704) |
+|---|---|---|
+| 每轮砍多少 | 挪1格 → O(n) | 跳到mid,砍一半 → O(log n) |
+| while条件 | `left < right`(剩1个配不成对) | `left <= right`(剩1个还要查) |
+| 靠什么砍半 | — | 有序/可判断 → mid一比,整半排除 |
 
-## 🧠 思考重点
-
-1. **Search 区间是什么？**
-   - `[start, end]`（闭区间）还是 `[start, end)`（半开区间）
-   - 不同定义影响循环条件和终止判断
-
-2. **你找的 target 是什么？**
-   - 精确值  
-   - 左边界 / 右边界  
-   - 满足条件的最小 / 最大位置  
-
-## 📘 练习记录表（Binary Search Practice Log）
-
-| 日期 | 题号 | 题目 | 难度 | 思路 / 技巧 | 备注 |
-|------|------|------|------|--------------|------|
-| 2025-11-06 | 704 | Binary Search | 🟢 Easy | 标准模板题，熟悉 start+1<end 写法 | ✅ 掌握 |
-| 2025-11-06 | 69 | Sqrt(x) | 🟢 Easy | 条件型二分，比较 mid*mid 与 x | 注意越界处理 |
-| 2025-11-06 | 34 | Find First and Last Position of Element in Sorted Array | 🟡 Medium | 左右边界二分法 | ✅ 掌握 |
-| 2025-11-07 | 852 | Peak Index in a Mountain Array | 🟡 Medium | mid 与 mid+1 比较方向 | 待复习 |
-| 2025-11-07 | 162 | Find Peak Element | 🟡 Medium | 比较 mid 与 mid+1 决定方向 | 🔁 复习 |
-| 2025-11-08 | 74 | Search a 2D Matrix | 🟡 Medium | 二维转一维二分 | ✅ 掌握 |
-| 2025-11-09 | 744 | Find Smallest Letter Greater Than Target | 🟢 Easy | 环形二分，若 target ≥ 最后元素返回 letters[0]；注意 `start + 1 < end` 写法 | ✅ 掌握 |
-| 2025-11-09 | 540 | Single Element in a Sorted Array | 🟡 Medium | 利用索引奇偶性判断单个元素位置（`mid ^ 1` 技巧） | 🔁 待复习 |
-| 2025-11-09 | 278 | First Bad Version | 🟢 Easy | 模板题，典型“找第一个 True”边界型二分 | ✅ 掌握 |
-| 2025-11-09 | 275 | H-Index II | 🟡 Medium | 在升序引用次数中二分找满足 `citations[mid] >= n - mid` 的最小 mid | ⚠️ 待巩固 |
-| 2025-11-09 | 33 | Search in Rotated Sorted Array | 🟡 Medium | 分段有序二分，判断左段/右段是否有序后决定方向 | ⚠️ 待巩固 |
-| 2025-11-09 | 240 | Search a 2D Matrix II | 🟡 Medium | 每走一步排除一整行/列 | ⚠️ 待巩固 |
-
-
-> 💡 每练完一道题就追加一行  
-> “思路 / 技巧” 写核心思想或坑点  
-> “备注” 标明掌握程度（✅ 掌握 / ⚠️ 待巩固 / 🔁 复习）
+> 有序数组+找一对 → 对撞;有序数组+找一个 → 二分。
 
 ---
 
-
----
-
-## 🐍 Python 模板（含完整注释）
+## 二、标准模板:闭区间(只养这一个,别混流派!)
 
 ```python
-def binarySearch(self, nums: List[int], target: int) -> int:
-    """
-    二分查找模板 (Python)
-    :param nums: 有序数组
-    :param target: 目标值
-    :return: 目标值下标，如果不存在返回 -1
-    """
-
-    # 定义左右边界
-    start = 0
-    end = len(nums) - 1
-
-    # 循环条件：保证区间内至少有两个元素
-    # 使用 start + 1 < end 避免死循环
-    while start + 1 < end:
-        # 计算中点（整除）
-        mid = (start + end) // 2
-
-        # 若中点值 < 目标，说明目标在右侧
-        if nums[mid] < target:
-            start = mid
-
-        # 若中点值 > 目标，说明目标在左侧
-        elif nums[mid] > target:
-            end = mid
-
-        # 若 nums[mid] == target，直接返回索引
-        else:
-            return mid
-
-    # 检查剩余的两个边界
-    if nums[start] == target:
-        return start
-    if nums[end] == target:
-        return end
-
-    # 若都不是，返回 -1 表示未找到
-    return -1
-
-# 测试 
-if __name__ == "__main__":
-    cases = [
-        ([1, 3, 5, 7, 9], 7, 3),     # 正常命中
-        ([1, 3, 5, 7, 9], 2, -1),    # 不存在
-        ([], 1, -1),                 # 空数组
-        ([1], 1, 0),                 # 单元素命中
-        ([1], 0, -1),                # 单元素不命中
-    ]
-    for arr, t, expected in cases:
-        got = binary_search(arr, t)
-        print(arr, t, "=>", got, "| expected:", expected)
+left, right = 0, len(nums) - 1
+while left <= right:                 # 有等号!剩一个候选也要查
+    mid = (left + right) // 2
+    if nums[mid] == target:
+        return mid
+    elif nums[mid] < target:
+        left = mid + 1               # mid查过了,砍掉它(+1!)
+    else:
+        right = mid - 1
+return -1                            # 循环内查干净,出来即没有
 ```
+
+**口诀:`<=` 继续、mid查完就 `±1` 砍掉、出来即-1。**
+
+⚠️ 二分两大流派(`<=`配`mid±1` vs `start+1<end`配`=mid`)**不能混用,混了必死循环**。我统一用闭区间。
+
 ---
 
-## Java 模板（含完整注释）
-```java 
+## 三、第二形态:找边界(找到 ≠ 停!)
 
-public class BinarySearch {
-    /**
-     * 二分查找模板 (Java)
-     * @param nums 有序数组
-     * @param target 目标值
-     * @return 目标索引，若不存在返回 -1
-     */
-    public int search(int[] nums, int target) {
-        // 边界检查：数组为空或长度为 0，直接返回 -1
-        if (nums == null || nums.length == 0) {
-            return -1;
-        }
+**基础二分找到即return;找边界的二分:找到后记账+继续往一侧压。**
 
-        // 初始化左右边界
-        int start = 0;
-        int end = nums.length - 1;
-
-        // 循环条件：保证至少有两个元素
-        // 防止死循环，退出时 start 和 end 相邻
-        while (start + 1 < end) {
-            // 计算中点，避免溢出写法
-            int mid = start + (end - start) / 2;
-
-            // 若中点值 < 目标，搜索右侧
-            if (nums[mid] < target) {
-                start = mid;
-            }
-            // 若中点值 > 目标，搜索左侧
-            else if (nums[mid] > target) {
-                end = mid;
-            }
-            // 若找到目标，直接返回
-            else {
-                return mid;
-            }
-        }
-
-        // 检查剩余的两个边界位置
-        if (nums[start] == target) {
-            return start;
-        }
-        if (nums[end] == target) {
-            return end;
-        }
-
-        // 若未找到，返回 -1
-        return -1;
-    }
-
-    // ✅ 测试样例
-    public static void main(String[] args) {
-        BinarySearch bs = new BinarySearch();
-        int[] nums = {1, 3, 5, 7, 9};
-        int target = 7;
-        int index = bs.search(nums, target);
-        System.out.println(index);  // 输出 3
-    }
-}
-
+### 34 找target的第一个和最后一个位置
+```python
+def findBound(nums, target, is_left):
+    left, right = 0, len(nums) - 1
+    bound = -1
+    while left <= right:
+        mid = (left + right) // 2
+        if nums[mid] == target:
+            bound = mid                  # 记账:目前找到的
+            if is_left:
+                right = mid - 1          # 找左界:假装不够好,往左继续压
+            else:
+                left = mid + 1           # 找右界:往右继续压
+        elif nums[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+    return bound
+# 答案 = [findBound(True), findBound(False)],两遍二分还是O(log n)
 ```
 
+**"跑两遍"不是笨,是标准解**——两次O(log n)还是O(log n),各司其职,比"一遍找两头"干净得多。
+(面经原题"找第一个位置" = 只要左边界那半。)
 
+### 35 搜索插入位置
+找不到时返回该插哪 = **循环结束后left的位置**。704模板最后 `return left` 即可。
 
+---
+
+## 四、第三形态:半有序也能二分(思维升级)
+
+### 153 旋转数组找最小值 🔥
+`[4,5,6,7,0,1,2]` → 0。数组不全有序,但**每步仍能判断最小值在哪半**:
+
+```python
+left, right = 0, len(nums) - 1
+while left < right:                  # 注意这题用 <(留下的那个就是答案)
+    mid = (left + right) // 2
+    if nums[mid] > nums[right]:      # mid比右端大 → 断崖在右半
+        left = mid + 1               # 最小值在右
+    else:                            # 右半是顺的
+        right = mid                  # 最小值在左半(mid自己可能就是,不砍)
+return nums[left]
+```
+
+### 33 旋转数组搜索target 🔥(153强化,大厂高频)
+每步两层判断:
+1. **哪半是顺的?** `nums[left] <= nums[mid]` → 左半顺;否则右半顺
+2. **target在顺的那半的范围里吗?** 在→砍进顺的半;不在→去另一半
+(顺的那半是正常有序区间,才能用范围判断;策略="查顺的,二选一")
+
+---
+
+## 五、第四形态:二分答案(对象不是数组!)
+
+**在"可能的答案范围"上猜**,配一个可行性验证函数。
+
+### 69 x的平方根(入门)
+猜0~x之间的数,`mid*mid` 和 x 比,砍半。
+
+### 875 爱吃香蕉的珂珂(标准形态)
+求能在h小时吃完的**最小**速度k:
+```python
+# 骨架:二分答案 + 可行性验证
+left, right = 1, max(piles)          # 答案范围:速度1 ~ 最大堆
+while left <= right:
+    mid = (left + right) // 2
+    if canFinish(mid):               # 这个速度来得及
+        ans = mid; right = mid - 1   # 记账,试更小的 ← 就是34找左边界的动作!
+    else:
+        left = mid + 1               # 太慢,加速
+
+# 可行性:每堆耗时=向上取整(pile/k),总和<=h?
+```
+**求"最小可行值" = 在答案空间上找左边界** —— 34的动作换了个空间。
+
+### 74 搜索二维矩阵(降维)
+把矩阵当拉直的一维数组二分,mid换算坐标:
+```python
+row = mid // cols      # 第几行
+col = mid % cols       # 第几列
+```
+
+---
+
+## 六、⚠️ 易错点
+
+1. **`while left <= right` 的等号别丢**(闭区间流派)——丢了漏查最后一个候选。
+2. **`left = mid + 1` / `right = mid - 1` 的±1别丢**——mid已查过,不砍会死循环。(153是例外:`right = mid` 因为mid可能就是答案,配 `left < right`。)
+3. **两个流派不能混**:`<=`必配`±1`;`start+1<end`必配`=mid`+循环后补查。
+4. **找边界:找到不return!** 记bound,继续往目标侧压。
+5. **`mid = (left + right) // 2` 别忘写**(草稿里真漏过)。
+6. **判断相等用 `==` 不是 `=`**。
+7. 二分答案题:先想清**答案的范围**(875:1~max堆)和**可行性怎么验证**,再套骨架。
+
+### 词组卡
+| 意思 | 词组 |
+|---|---|
+| 取中 | `mid = (left + right) // 2` |
+| 向上取整 | `math.ceil(a/k)` 或 `(a + k - 1) // k` |
+| 二维拉直换算 | `row = mid // cols; col = mid % cols` |
+| 找最小可行 | 可行→记账+`right=mid-1`;不可行→`left=mid+1` |
+
+---
+
+## 七、什么时候想到二分
+
+- **有序数组找一个/找位置** → 基础二分(704/35)
+- **有序+有重复,找第一个/最后一个** → 找边界(34)
+- **旋转/半有序** → 判断哪半顺(153/33)
+- **"最小的满足条件的值"/"最大的可行值"+能写出验证函数** → 二分答案(875)
+- 关键词:O(log n)要求、sorted、"minimum k such that..."
+
+---
+
+## 八、刷过的题
+
+- [x] **704** Binary Search — 闭区间模板
+- [x] **35** Search Insert Position — 循环后left即插入位
+- [x] **34** Find First and Last Position — 找边界,记账+继续压(面经"找第一个位置"=左半)
+- [x] **69** Sqrt(x) — 二分答案入门
+- [x] **74** Search a 2D Matrix — 拉直+坐标换算
+- [x] **153** Find Minimum in Rotated Sorted Array — 半有序,和右端比
+- [ ] **33** Search in Rotated Sorted Array — 153+两层判断(待做)
+- [ ] **875** Koko Eating Bananas — 二分答案标准形态(待做)
