@@ -49,14 +49,16 @@ node.right    # 通往右孩子盒子的线
 ## 二、分治模板 + "填三格"
 
 ```python
-def solve(self, root):
-    def dfs(node):
-        if not node:
-            return 底值               # ← 格2
-        left = dfs(node.left)         # 问儿子要答案(会"等"儿子return)
-        right = dfs(node.right)
-        return 拼法(left, right, node.val)   # ← 格3
-    return dfs(root)
+class Solution:
+    def 主函数(self, root):
+        def dfs(node):
+            if not node:
+                return 【空①】          # ← 底:空树交什么
+            left = dfs(node.left)        # 问左儿子要答案(照抄)
+            right = dfs(node.right)      # 问右儿子要答案(照抄)
+            return 【空②】               # ← 拼:用left/right/node.val拼出我的答案
+        
+        return dfs(root)                 # 照抄(有时是 dfs(root) != -1 之类,见下)
 ```
 
 **写分治 = 填三格**(写码前先口头填!):
