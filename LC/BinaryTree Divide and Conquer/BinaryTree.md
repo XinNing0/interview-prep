@@ -112,6 +112,10 @@ def solve(self, root):
 - 题说"**都/全部**要满足" → `and`(100/101)
 - 题说"**存在/任一/一条就够**" → `or`(112)
 
+### or/and 判断只看一件事(别被题目细节带偏)
+> **题目问"存在/一条/能不能" → or;问"所有/每条/是否都" → and**
+> 和路径和正负、结账条件松紧**无关**——那些只决定"什么算数",不决定"要一条还是要全部"。
+
 ### 110 的 -1 暗号(复合返回值的经典设计)
 一个return要交两样(高度+平衡吗)→ **用不可能的高度值-1兼职当"不平衡"警报**:
 - 交 ≥0 的数 = "平衡,高度是它"
@@ -121,13 +125,28 @@ def solve(self, root):
 ```python
 def dfs(node):
     if not node: return 0
-    left = dfs(node.left); right = dfs(node.right)
-    if left == -1 or right == -1: return -1     # 收到警报→上传
+    left = dfs(node.left)
+    if left == -1: return -1          # 提前剪枝:左边已烂,右边不用算了(更优)
+    right = dfs(node.right)
+    if right == -1: return -1
     if abs(left - right) > 1: return -1         # 我这层差超1→举旗
     return max(left, right) + 1                 # 都好→正常交高度
 # 主函数: return dfs(root) != -1
 ```
 (abs必须有:right比left高时 left-right 是负数,`>1` 永远抓不到!)
+
+**更好懂的替代写法(不用暗号,返回tuple)**——dfs需要返回多个信息时的通用技巧:
+```python
+def dfs(node):
+    if not node: return (True, 0)              # (平衡吗, 高度)
+    leftBal, leftH = dfs(node.left)             # 拆包接收
+    rightBal, rightH = dfs(node.right)
+    balanced = leftBal and rightBal and abs(leftH-rightH) <= 1
+    height = max(leftH, rightH) + 1
+    return (balanced, height)
+# 主函数: return dfs(root)[0]
+```
+两版都对:-1版更"炫技"简洁;tuple版更直白、更好迁移(236 LCA等也能用"返回tuple"这招)。
 
 ### 分治的"自下而上"到底是什么
 不是有东西在树里爬——是**每层函数停在 `left = dfs(...)` 那行等儿子return,拿到后算自己的,再return给等自己的人**。和 `a = f(5)` 是同一个动作,只是层数多。104:9交1、20交2、3拼出max(1,2)+1=3。
@@ -251,7 +270,7 @@ def solve(self, root):
 
 ---
 
-## 四、辅助def的判断("形状匹配"规则)
+## 四.5、辅助def的判断("形状匹配"规则)
 
 > **递归前对形状:主函数的参数,够不够递归每层要传的?**
 > - 够 → 直接递归自己(100:p,q正好一对;112:root,targetSum正好节点+账)
@@ -260,7 +279,145 @@ def solve(self, root):
 
 ---
 
-## 五、⚠️ 易错点(全是实战踩的)
+## 五、BST(二叉搜索树)= 二叉树 + 一条铁律
+
+### 定义(精确版!)
+> **对每个节点:整棵左子树所有值 < 我 < 整棵右子树所有值**
+
+关键是**"整棵"**和**"每个节点都要满足"**——不是"左孩子<我<右孩子"(那只是局部)!
+反例:根5,右孩子8,8的左孩子2 → 2<8局部对,但2在5右边该>5,2<5 → **不是BST**。
+正因为约束跨越多层祖先(深层节点看不见祖先),才需要往下传边界(见武器2的98)。
+
+⚠️ 读题看到 "binary **search** tree"/"BST" 要条件反射想两个武器,别当普通binary tree做(否则O(log n)题写成O(n),面试被追问)。这是漏词老坑的新高发区。
+
+### 两个武器
+
+**武器1:比大小,只走一边**(O(h)≈O(log n))
+```python
+if val < node.val:   往左   # 小的在左
+elif val > node.val: 往右   # 大的在右
+else:                就是它
+```
+用于:搜索(700)、插入(701)、删除(450)、LCA(235)、最接近值(270)
+
+**武器2:中序遍历 = 从小到大有序**
+BST"左<我<右",中序"左→我→右"正好按大小走 → 吐出升序。
+```python
+# 通用起手式:中序存进array,在有序数组上做事
+arr = []
+def dfs(node):
+    if not node: return
+    dfs(node.left); arr.append(node.val); dfs(node.right)
+```
+用于:验证BST(98)、第k小(230)、最小差(530)、累加树(538)
+
+### 拿到BST题先问
+> 查找/插入/删除某个值 → 武器1(比大小走一边)
+> 验证有序 / 第k小 / 最接近 → 武器2(中序有序)
+
+### ★BST武器1 = 二叉树上的二分!(跨专题连线)
+
+BST武器1 和 二分查找(704)**本质是同一个东西**:
+
+```python
+# 704 二分(有序数组)          # 700 BST搜索(树)
+while left <= right:            while node:
+    mid=(left+right)//2             if val==node.val: return node
+    if nums[mid]==target: ...       elif val<node.val: node=node.left  # 小→左
+    elif nums[mid]<target:          else: node=node.right             # 大→右
+        left=mid+1  # 往右半
+    else: right=mid-1  # 往左半
+```
+
+| | 二分(数组) | BST武器1(树) |
+|---|---|---|
+| 靠什么砍半 | 数组有序 | 左<我<右 |
+| "中间" | nums[mid] | 当前node |
+| 小了往 | 左半 | 左孩子 |
+| 大了往 | 右半 | 右孩子 |
+| 复杂度 | O(log n) | O(h)≈O(log n) |
+
+**BST = 把有序数组组织成树**:数组 `[1,3,5,8,10,14]` 二分跳中点8 ≈ BST根是8、左子树是左半、右子树是右半。"往左孩子走"="往左半查"。
+
+**整张记忆网**:对撞双指针(挪1格)→ 有序能砍半 → 二分(数组砍半)→ BST武器1(树上砍半)。同一个"比大小、砍一半、走一边"的思想。
+
+### 递归 vs 循环:什么时候不用递归
+
+**判据:走完一个分支还要回头走另一个吗?**
+- **要回头/分叉**(左右都处理)→ **递归**(需要"记住回来的路"):104/98/230/257
+- **只走一条路,永不回头**(单路下探)→ **循环够了**:700/701/235
+
+所以**BST武器1(比大小)全能用循环**(=树上二分,像704那样while):
+```python
+def searchBST(self, root, val):     # 700循环版
+    node = root
+    while node:
+        if val == node.val: return node
+        node = node.left if val < node.val else node.right
+    return None
+```
+**武器2(中序)还得递归**(要遍历全树)。
+能循环的循环更好(不占递归栈,O(1)空间);面试能写一种即可,用循环是加分(懂"不用递归也行")。
+
+### 98 上下界解法(low/high = 把所有祖先约束打包传下来验票)
+
+**为什么必须传low/high**:一个节点光看自己和孩子,判断不了合不合法(看不到祖先定的规矩)。
+low/high就是把"从根到我,所有祖先给的约束"打包成两个数,一路传下来验票:
+- 往**左**走:左子树都要**<我** → 上界(high)收紧成我
+- 往**右**走:右子树都要**>我** → 下界(low)收紧成我
+- 两个都要传:一个节点可能同时被"要>某祖先"和"要<某祖先"两头夹
+
+```python
+def dfs(node, low, high):
+    if not node: return True
+    if node.val <= low or node.val >= high: return False   # 不在允许范围
+    return (dfs(node.left, low, node.val)         # 往左:上界收紧成我
+            and dfs(node.right, node.val, high))  # 往右:下界收紧成我
+# 主函数: return dfs(root, float('-inf'), float('inf'))
+```
+这个"往下传约束、越传越紧"和112传remaining同构——你早会这个套路了,只是纸条换成了两个边界。
+
+也可用中序做(存array检查严格递增),两个武器都行。
+
+### BST 已刷题
+
+- [x] **700** 搜索 — 武器1,循环单路(=树上二分)
+- [x] **701** 插入 — 武器1+走到空位`return TreeNode(val)`+接住重挂
+- [x] **98** 验证BST — 上下界(low/high往下传,收紧范围);也可中序检查递增
+- [x] **230** 第k小 — 武器2:中序存array取`arr[k-1]`(或边走边计数,找到即停更省空间)
+- [x] **235** LCA — 武器1循环:都小往左/都大往右/分叉了我就是LCA(比普通树236简单!)
+- [ ] **450** 删除 — 武器1找到+三种情况(叶子/单孩子/双孩子找替身)+接住重挂(最难,压轴,待啃)
+
+**450的思路(暂放,回头啃)**:
+- 用大小关系单路找到key
+- 找到后三种情况:①叶子→直接删(return None) ②只一个孩子→那孩子顶上(return 存在的那个孩子) ③两个孩子→找右子树最小的"替身"(后继),把它的值搬上来,再去右子树递归删掉那个替身
+- 全程"接住重挂":`root.left = self.deleteNode(root.left, key)`
+
+---
+
+## 六、改结构必用"接住重挂"(分治的实战应用)
+
+**凡是会改变树结构的操作(删除/插入/翻转/剪枝),必须用分治:dfs返回"处理好的子树根",父亲用 `root.left = dfs(root.left)` 接住重挂。**
+
+**为什么遍历做不到**:遍历没有向上交付的通道,深处对node的重新赋值只改了局部变量,树上的指针(父亲的.left/.right)没跟着动,"接不上"。
+**分治能做到**:父亲拿返回值覆盖自己的指针,不管下面发生了什么变化,`root.left = 新的` 一次赋值就完成接线。
+
+```python
+# 701插入(最干净的例子):
+def insertIntoBST(self, root, val):
+    if not root:
+        return TreeNode(val)      # 走到空位→造新节点,交上去(插入发生在这!)
+    if val < root.val:
+        root.left = self.insertIntoBST(root.left, val)    # 接住重挂
+    else:
+        root.right = self.insertIntoBST(root.right, val)
+    return root
+```
+对比700(只读,底返回None="没找到")vs 701(改写,底返回新节点="给你造一个")——**一行之差,只读变改写**。
+
+---
+
+## 七、⚠️ 易错点(全是实战踩的)
 
 1. **两派零件不混装**:遍历骨架里不写 `left = dfs(...)` 和 `or`(257踩过);分治里没有res和pop。
 2. **class里递归自己要 `self.`**,内部def不用——统一用内部def省心。
@@ -273,6 +430,8 @@ def solve(self, root):
    - 发起调用和return在主函数层吗?(没滑进dfs肚子里)
 7. **`abs(left-right)`的abs别省**——负差抓不到。
 8. **空是None不是null**;"都空"=`not p and not q`;"(排除都空后)一空一不空"=`not p or not q`,**顺序有讲究**(前一个先拦截)。
+9. **分治里没有裸return**——每个出口都要带值(110踩过:底写成裸return,该是return 0)。分治的return后面永远有东西;遍历才有裸return。
+10. **BST题看清是不是要用大小关系/中序**——读题漏看"search"这个词,会把O(log n)题写成O(n)遍历全树。
 
 ### 词组卡(树专用)
 | 意思 | 词组 |
@@ -285,33 +444,40 @@ def solve(self, root):
 | 高度拼法 | `return max(left, right) + 1` |
 | 交换挂回 | `root.left, root.right = right, left` |
 | 路径收集 | `res.append(path[:])` / `res.append("->".join(path))` |
+| BST走一边 | `node = node.left if val < node.val else node.right` |
+| 拆包接收tuple | `leftBal, leftH = dfs(node.left)` |
 
 ---
 
-## 六、刷过的题
+## 八、刷过的题(总览)
 
 **分治:**
-- [x] **104** Maximum Depth — 模板原题,max+1
+- [x] **104** Maximum Depth — 模板原题,max+1(白板✓)
 - [x] **226** Invert — 交节点,交换挂回+return root
-- [x] **100** Same Tree — 布尔,and,两个底
+- [x] **100** Same Tree — 布尔,and,两个底(白板✓)
 - [x] **101** Symmetric — 100的镜像:交叉比(左vs右)
-- [x] **112** Path Sum — 布尔,or,叶子结账remaining==val
-- [ ] **110** Balanced — -1暗号(理解了,待默写焊牢)
+- [x] **112** Path Sum — 布尔,or,叶子结账remaining==val(白板✓)
+- [x] **110** Balanced — -1暗号 或 tuple版(白板✓,两种写法都会)
 
 **遍历:**
+- [x] **144/94/145** 前中后序 — 一行三位置
 - [x] **257** Binary Tree Paths — path+join收集+pop
 - [x] **113** Path Sum II — 257骨架+112结账的合体
 
-**待刷(课件清单):**
-- [ ] 144/94/145 前中后序遍历(最裸的遍历)
-- [ ] 102 层序遍历(BFS+deque,新词组)
-- [ ] 236 LCA、98 验证BST(分治进阶)
-- [ ] 1120 / 549 / 114(课件进阶,能讲即可)
+**BST:**
+- [x] **700** 搜索、**701** 插入、**98** 验证、**230** 第k小、**235** LCA
+- [ ] **450** 删除(思路已懂,待默写)
+
+**待刷:**
+- [ ] **102** 层序遍历(BFS+deque)—— 单独开专场练,树递归之外唯一的新形态
+- [ ] 236(普通树的LCA,对比235看BST的优势)
+- [ ] 1120 / 549 / 114(进阶,能讲即可)
 
 ---
 
-## 七、复习节奏(给自己的)
+## 九、复习节奏(给自己的)
 
-- 分治基本盘 = 填三格熟练度:104/112 隔天重默(默前先口头填三格)
-- 110 明天再看(-1只是第三格花了点,基本盘牢了它就简单)
-- 遍历已通(=backtrack),257/113 隔几天各默一遍保温
+- 白板特训已过一批:104/110/100/112全部白板默写成功
+- 待白板确认:94/257/226(理解了,还没纸上默过)
+- 450:等BST其余题隔几天保温后再啃(三种情况+找替身,一次学新东西不要太多)
+- BFS/102:单独安排一个时段,别和递归树题混着学
