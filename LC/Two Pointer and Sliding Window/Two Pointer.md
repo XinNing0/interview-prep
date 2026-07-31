@@ -2,6 +2,8 @@
 
 > 双指针不是一种方法，是一**大类**。底下分几种完全不同的玩法，别混。
 > 核心判断：**看两个指针怎么动。**
+>
+> **正在把已掌握的题从Python换成Java重写**——思路不用重新想，重点是语法转换。本文件Python和Java模板并列放，方便对照。
 
 ---
 
@@ -20,7 +22,7 @@
 
 ## 二、对撞双指针
 
-### 模板
+### Python 模板
 ```python
 left, right = 0, len(nums) - 1
 while left < right:
@@ -30,6 +32,20 @@ while left < right:
     else:
         right -= 1       # 移右
 ```
+
+### Java 模板
+```java
+int left = 0, right = nums.length - 1;
+while (left < right) {
+    // 算点什么(和/面积/比较)
+    if (/* 条件 */) {
+        left++;          // 移左
+    } else {
+        right--;         // 移右
+    }
+}
+```
+**骨架和Python一字不差**，就是括号、分号、`.length`(不是`len()`)、`++`/`--`(不是`+= 1`)这些语法外壳的区别。
 
 ### 核心思想
 - 左右从两端往中间夹，**每轮只动一个指针**
@@ -46,7 +62,7 @@ while left < right:
 
 ## 三、快慢双指针（原地操作）
 
-### 模板
+### Python 模板
 ```python
 slow = 0
 for fast in range(len(nums)):     # 有时 range(1, len)
@@ -55,6 +71,19 @@ for fast in range(len(nums)):     # 有时 range(1, len)
         slow += 1                  # slow前进
 return slow          # 或 slow+1，或 nums[:slow]
 ```
+
+### Java 模板
+```java
+int slow = 0;
+for (int fast = 0; fast < nums.length; fast++) {
+    if (/* nums[fast] 是合格的 */) {
+        nums[slow] = nums[fast];   // 把合格的搬到slow(原地覆盖!)
+        slow++;
+    }
+}
+return slow;          // 或 slow+1，或 Arrays.copyOfRange(nums, 0, slow)
+```
+同样是骨架不变，只换外壳。**唯一要留神**：Java的for循环三段式(初始化;条件;步进)写在一行括号里，别拆开写成Python那种冒号+缩进的形式。
 
 ### 核心思想
 - **slow** = "合格区的边界"（合格的东西放这儿）
@@ -73,7 +102,7 @@ return slow          # 或 slow+1，或 nums[:slow]
 
 ---
 
-## 四、⚠️ 易错点（我踩过的坑）
+## 四、⚠️ 易错点（我踩过的坑，Python版）
 
 1. **判断值还是下标**：判断用 `nums[fast]`，不是 `fast`（下标）！
    - ❌ `if fast != 0` → ✅ `if nums[fast] != 0`
@@ -93,14 +122,32 @@ return slow          # 或 slow+1，或 nums[:slow]
 
 ---
 
-## 五、下标 ↔ 个数（+1 的来源）
+## 五、⚠️ 易错点（Java专属新坑，Python没有的）
+
+1. **`==` 比较 `Integer`(装箱类型)可能出错**：基本类型 `int` 用 `==` 没问题；但如果数组/集合里存的是 `Integer`(比如 `List<Integer>`)，`==` 比较的是**对象地址**，数值在 -128~127 内因为缓存机制凑巧对，**超出这个范围就会判错**。
+   - 双指针题里数值比较要用 `.equals()`，或者先确认两边都是拆箱后的 `int` 变量再用 `==`。
+2. **没有 `a, b = b, a` 这种一行互换**：Java不支持元组赋值，交换必须用临时变量：
+   ```java
+   int temp = nums[left];
+   nums[left] = nums[right];
+   nums[right] = temp;
+   ```
+3. **没有负数下标、没有切片语法**：`nums[-1]` 不存在，要写 `nums[nums.length - 1]`；`nums[:k]` 要写 `Arrays.copyOfRange(nums, 0, k)`。
+4. **除法的默认行为和Python相反！**（这是从Python换过来最容易踩的坑）
+   - Python：`/` 是真除法(带小数)，`//` 才是整除
+   - **Java反过来**：两个 `int` 相除，`/` 本身就自动截断成整数(等价于Python的 `//`)，**想要小数结果必须显式转型**：`(double) a / b`
+5. **数组长度用 `.length`（属性，不加括号），字符串长度用 `.length()`（方法，要加括号）**——两个语法长得像，容易记混。
+
+---
+
+## 六、下标 ↔ 个数（+1 的来源，语言无关）
 - 下标从0开始，个数从1开始，差1
 - 最后一个下标 + 1 = 个数
 - 窗口长度 = `right - left + 1`（下标差+1才是元素个数）
 
 ---
 
-## 六、刷过的题（清单）
+## 七、刷过的题（清单）
 
 ### 对撞
 - [x] **167** Two Sum II（有序数组找两数）— 对撞入门
@@ -113,9 +160,15 @@ return slow          # 或 slow+1，或 nums[:slow]
 - [x] **27** Remove Element — 移除val，合格=≠val
 - [x] **283** Move Zeroes — 移零，合格=非零
 
+### Java 重写进度（思路已会，只练语法转换）
+- [ ] 167
+- [ ] 11
+- [ ] 15
+- [ ] 26 / 27 / 283
+
 ---
 
-## 七、关键感悟
+## 八、关键感悟
 
 1. **双指针是大类，先判断"对撞 or 快慢"**（看指针相向还是同向）。
 2. **快慢指针的 if 条件 = 把"题目要什么"翻译过来**，不是背的。
@@ -123,10 +176,4 @@ return slow          # 或 slow+1，或 nums[:slow]
 4. **原地覆盖是快慢的精髓**：`nums[slow]=nums[fast]` 搬合格元素到前面，省空间。
 5. **3Sum = 167的升级**：外面固定一个数，里面对撞。排序是灵魂(为了对撞+去重)。
 6. **反复刷才能真会**：看懂≠会写≠真懂。要隔天默写、每遍问"为什么"。
-
----
-
-## 八、Java → Python 备忘
-- 交换：`a, b = b, a`（不用temp）
-- 切片：`nums[:k]` 取前k个
-- **用Python3**：`/` 才有小数，`//` 是整除
+7. **换语言不用重新想思路**——双指针这批的逻辑骨架Python和Java完全一样，卡的地方只会是语法外壳(见第五节)。
