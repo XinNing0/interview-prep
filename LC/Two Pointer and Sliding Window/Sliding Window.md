@@ -24,6 +24,7 @@
 
 ## 二、通用模板（先背死骨架）
 
+### Python
 ```python
 def 滑窗(nums):
     left = 0
@@ -42,6 +43,27 @@ def 滑窗(nums):
     return 答案
 ```
 
+### Java
+```java
+int left = 0;
+状态类型 state = 初始值;      // sum=0 / product=1 / new HashMap<>() / zeros=0
+答案类型 ans = 初始值;         // 最长:0   最短:Integer.MAX_VALUE   计数:0
+
+for (int right = 0; right < nums.length; right++) {
+    纳入 nums[right];              // ① 右进(for里,while外)
+
+    while (窗口违规) {
+        移出 nums[left];           // ② 左出(while里)
+        left++;
+    }
+
+    更新答案;                       // ③ 合法时记录
+}
+
+return ans;
+```
+骨架和Python一字不差，只是括号/分号/类型声明这套外壳。**状态用什么类型装**（`int`、`HashMap<Character,Integer>`……）看题目要维护什么。
+
 ### 三句口诀
 1. **右进** — 纳入 nums[right]（while外，for里）
 2. **违规缩** — 移出 nums[left]，left++（while里）
@@ -58,6 +80,8 @@ def 滑窗(nums):
 ## 三、各类型模板
 
 ### 最长型（3, 424）
+
+**Python**
 ```python
 for right in range(len(s)):
     纳入 s[right]
@@ -66,7 +90,20 @@ for right in range(len(s)):
     ans = max(ans, right - left + 1)  # while外记max
 ```
 
+**Java**
+```java
+for (int right = 0; right < s.length(); right++) {
+    纳入 s.charAt(right);
+    while (违规) {                              // 有重复 / 要替换>k
+        移出 s.charAt(left); left++;
+    }
+    ans = Math.max(ans, right - left + 1);      // while外记max
+}
+```
+
 ### 最短型（209）
+
+**Python**
 ```python
 for right in range(len(nums)):
     cur_sum += nums[right]
@@ -76,7 +113,21 @@ for right in range(len(nums)):
 return ans if ans != float('inf') else 0
 ```
 
+**Java**
+```java
+for (int right = 0; right < nums.length; right++) {
+    curSum += nums[right];
+    while (curSum >= target) {                       // 满足了
+        ans = Math.min(ans, right - left + 1);       // while里记min
+        curSum -= nums[left]; left++;
+    }
+}
+return ans == Integer.MAX_VALUE ? 0 : ans;
+```
+
 ### 计数型（713）
+
+**Python**
 ```python
 if k <= 1: return 0
 for right in range(len(nums)):
@@ -86,7 +137,21 @@ for right in range(len(nums)):
     count += right - left + 1             # 以right结尾的合法子数组个数
 ```
 
+**Java**
+```java
+if (k <= 1) return 0;
+for (int right = 0; right < nums.length; right++) {
+    product *= nums[right];
+    while (product >= k) {
+        product /= nums[left]; left++;    // 整数/整数在Java本身就整除,不用额外符号
+    }
+    count += right - left + 1;            // 以right结尾的合法子数组个数
+}
+```
+
 ### 定长型（643）
+
+**Python**
 ```python
 window_sum = sum(nums[:k])           # 先算第一个窗口
 max_sum = window_sum
@@ -95,6 +160,19 @@ for i in range(k, len(nums)):
     window_sum -= nums[i-k]          # 左出(i-k是滑出位置)
     max_sum = max(max_sum, window_sum)
 return max_sum / k
+```
+
+**Java**
+```java
+int windowSum = 0;
+for (int i = 0; i < k; i++) windowSum += nums[i];   // 没有sum()内建函数,手动循环累加第一个窗口
+int maxSum = windowSum;
+for (int i = k; i < nums.length; i++) {
+    windowSum += nums[i];              // 右进
+    windowSum -= nums[i - k];          // 左出(i-k是滑出位置)
+    maxSum = Math.max(maxSum, windowSum);
+}
+return (double) maxSum / k;            // 除法要强转double,否则整数相除会截断小数(Java除法方向和Python相反)
 ```
 
 ---
